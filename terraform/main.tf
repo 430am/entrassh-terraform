@@ -19,7 +19,15 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_role_assignment" "windows-login" {
-    principal_id = "value"
-    scope = "value"
-    
+    principal_id = data.azurerm_client_config.current.object_id
+    scope = azurerm_windows_virtual_machine.vm.id
+    role_definition_name = "Virtual Machine Administrator Login"
+    depends_on = [azurerm_windows_virtual_machine.vm]
+}
+
+resource "azurerm_role_assignment" "linux-login" {
+    principal_id = data.azurerm_client_config.current.object_id
+    scope = azurerm_linux_virtual_machine.vm.id
+    role_definition_name = "Virtual Machine Administrator Login"
+    depends_on = [azurerm_linux_virtual_machine.vm]
 }
