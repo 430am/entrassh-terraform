@@ -1,3 +1,7 @@
+data "azuread_user" "current_user" {
+  object_id = data.azurerm_client_config.current.object_id
+}
+
 data "azurerm_client_config" "current" {}
 
 # Generate a random suffix to keep names unique across runs / regions.
