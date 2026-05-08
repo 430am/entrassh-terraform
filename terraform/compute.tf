@@ -1,98 +1,102 @@
-resource "azurerm_network_interface" "linux-nic" {
-    location = azurerm_resource_group.rg.location
-    name = "${random_pet.naming.id}-linux-nic"
-    resource_group_name = azurerm_resource_group.rg.name
+resource "azurerm_network_interface" "linux_nic" {
+  location            = azurerm_resource_group.rg.location
+  name                = "${random_pet.naming.id}-linux-nic"
+  resource_group_name = azurerm_resource_group.rg.name
 
-    ip_configuration {
-        name = "${random_pet.naming.id}-linux-ipconfig"
-        private_ip_address_allocation = "Dynamic"
-        subnet_id = azurerm_subnet.main-subnet.id
-    }
+  ip_configuration {
+    name                          = "${random_pet.naming.id}-linux-ipconfig"
+    private_ip_address_allocation = "Dynamic"
+    subnet_id                     = azurerm_subnet.subnet["compute-subnet"].id
+  }
 }
 
-resource "azurerm_network_interface" "windows-nic" {
-    location = azurerm_resource_group.rg.location
-    name = "${random_pet.naming.id}-windows-nic"
-    resource_group_name = azurerm_resource_group.rg.name
+resource "azurerm_network_interface" "windows_nic" {
+  location            = azurerm_resource_group.rg.location
+  name                = "${random_pet.naming.id}-windows-nic"
+  resource_group_name = azurerm_resource_group.rg.name
 
-    ip_configuration {
-        name = "${random_pet.naming.id}-windows-ipconfig"
-        private_ip_address_allocation = "Dynamic"
-        subnet_id = azurerm_subnet.main-subnet.id
-    }    
+  ip_configuration {
+    name                          = "${random_pet.naming.id}-windows-ipconfig"
+    private_ip_address_allocation = "Dynamic"
+    subnet_id                     = azurerm_subnet.subnet["compute-subnet"].id
+  }
 }
 
-resource "azurerm_linux_virtual_machine" "linux-vm" {
-    location = azurerm_resource_group.rg.location
-    name = "${random_pet.naming.id}-linux-vm"
-    network_interface_ids = [ azurerm_network_interface.linux-nic.id ]
-    resource_group_name = azurerm_resource_group.rg.name
-    size = "Standard_D2als_v6"
+resource "azurerm_linux_virtual_machine" "linux_vm" {
+  location              = azurerm_resource_group.rg.location
+  name                  = "${random_pet.naming.id}-linux-vm"
+  network_interface_ids = [azurerm_network_interface.linux_nic.id]
+  resource_group_name   = azurerm_resource_group.rg.name
+  size                  = var.vm_sku
+  tags                  = local.common_tags
 
-    os_disk {
-        caching = "ReadWrite"
-        name = "linux-osdisk-${random_pet.naming.id}"
-        storage_account_type = "Premium_LRS"
-    }
-    
-    source_image_reference {
-      publisher = var.linux-publisher
-      offer = var.linux-offer
-      sku = var.linux-sku
-      version = "latest"
-    }
+  admin_username                  = var.admin_username
+  admin_password                  = random_password.vm_admin.result
+  disable_password_authentication = false
 
-    identity {
-      type = "SystemAssigned"
-    }
+  identity {
+    type = "SystemAssigned"
+  }
 
-    admin_username = var.admin-username
-    admin_password = random_string.password.result
+  os_disk {
+    caching              = "ReadWrite"
+    name                 = "linux-osdisk-${random_pet.naming.id}"
+    storage_account_type = "Premium_LRS"
+  }
+
+  source_image_reference {
+    publisher = var.linux_vm_image.publisher
+    offer     = var.linux_vm_image.offer
+    sku       = var.linux_vm_image.sku
+    version   = var.linux_vm_image.version
+  }
 }
 
-resource "azurerm_windows_virtual_machine" "windows-vm" {
-    location = azurerm_resource_group.rg.location
-    name = "${random_pet.naming.id}-windows-vm"
-    network_interface_ids = [ azurerm_network_interface.windows-nic.id ]
-    resource_group_name = azurerm_resource_group.rg.name
-    size = "Standard_D2als_v6"
-    os_disk {
-        caching = "ReadWrite"
-        name = "windows-osdisk-${random_pet.naming.id}"
-        storage_account_type = "Premium_LRS"
-    }
-    
-    source_image_reference {
-      publisher = var.windows-publisher
-      offer = var.windows-offer
-      sku = var.windows-sku
-      version = "latest"
-    }
+resource "azurerm_windows_virtual_machine" "windows_vm" {
+  location              = azurerm_resource_group.rg.location
+  name                  = "${random_pet.naming.id}-win-vm"
+  network_interface_ids = [azurerm_network_interface.windows_nic.id]
+  resource_group_name   = azurerm_resource_group.rg.name
+  size                  = var.vm_sku
+  tags                  = local.common_tags
 
-    identity {
-      type = "SystemAssigned"
-    }
+  admin_username = var.admin_username
+  admin_password = random_password.vm_admin.result
 
-    admin_username = var.admin-username
-    admin_password = random_string.password.result
+  identity {
+    type = "SystemAssigned"
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    name                 = "windows-osdisk-${random_pet.naming.id}"
+    storage_account_type = "Premium_LRS"
+  }
+
+  source_image_reference {
+    publisher = var.windows_vm_image.publisher
+    offer     = var.windows_vm_image.offer
+    sku       = var.windows_vm_image.sku
+    version   = var.windows_vm_image.version
+  }
 }
 
-resource "azurerm_virtual_machine_extension" "windows-login" {
-    name = "windows-login"
-    publisher = var.extension-publisher
-    type = var.windows-login-extension
-    type_handler_version = "latest"
-    virtual_machine_id = azurerm_windows_virtual_machine.windows-vm.id
-    auto_upgrade_minor_version = true
-    automatic_upgrade_enabled = true
+resource "azurerm_virtual_machine_extension" "linux_login" {
+  name                       = "AADSSHLoginForLinux"
+  publisher                  = var.extension_publisher
+  type                       = var.linux_login_extension
+  type_handler_version       = "1.0"
+  virtual_machine_id         = azurerm_linux_virtual_machine.linux_vm.id
+  auto_upgrade_minor_version = true
+  automatic_upgrade_enabled  = true
 }
 
-resource "azurerm_virtual_machine_extension" "linux-login" {
-    name = "linux-login"
-    publisher = var.extension-publisher
-    type = var.linux-login-extension
-    type_handler_version = "latest"
-    virtual_machine_id = azurerm_linux_virtual_machine.linux-vm.id
-    auto_upgrade_minor_version = true
-    automatic_upgrade_enabled = true
+resource "azurerm_virtual_machine_extension" "windows_login" {
+  name                       = "AADLoginForWindows"
+  publisher                  = var.extension_publisher
+  type                       = var.windows_login_extension
+  type_handler_version       = "2.0"
+  virtual_machine_id         = azurerm_windows_virtual_machine.windows_vm.id
+  auto_upgrade_minor_version = true
+  automatic_upgrade_enabled  = true
 }
