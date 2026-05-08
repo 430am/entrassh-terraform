@@ -49,3 +49,6 @@ override.tf.json
 
 # working directory
 working/
+
+# Ignore instructions files
+.github/instructions/*
