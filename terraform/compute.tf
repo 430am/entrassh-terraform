@@ -55,6 +55,7 @@ resource "azurerm_linux_virtual_machine" "linux_vm" {
 resource "azurerm_windows_virtual_machine" "windows_vm" {
   location              = azurerm_resource_group.rg.location
   name                  = "${random_pet.naming.id}-win-vm"
+  computer_name         = substr("${random_pet.naming.id}-win", 0, 15)
   network_interface_ids = [azurerm_network_interface.windows_nic.id]
   resource_group_name   = azurerm_resource_group.rg.name
   size                  = var.vm_sku
@@ -88,7 +89,7 @@ resource "azurerm_virtual_machine_extension" "linux_login" {
   type_handler_version       = "1.0"
   virtual_machine_id         = azurerm_linux_virtual_machine.linux_vm.id
   auto_upgrade_minor_version = true
-  automatic_upgrade_enabled  = true
+  automatic_upgrade_enabled  = false
 }
 
 resource "azurerm_virtual_machine_extension" "windows_login" {
@@ -98,5 +99,5 @@ resource "azurerm_virtual_machine_extension" "windows_login" {
   type_handler_version       = "2.0"
   virtual_machine_id         = azurerm_windows_virtual_machine.windows_vm.id
   auto_upgrade_minor_version = true
-  automatic_upgrade_enabled  = true
+  automatic_upgrade_enabled  = false
 }
